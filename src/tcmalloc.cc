@@ -108,6 +108,9 @@
 #include <limits>                       // for numeric_limits
 #include <new>                          // for nothrow_t (ptr only), etc
 #include <vector>                       // for vector
+#ifdef _WIN64
+#include <math.h>
+#endif
 
 #include <gperftools/malloc_extension.h>
 #include <gperftools/malloc_hook.h>         // for MallocHook
@@ -929,6 +932,12 @@ class TCMallocImplementation : public MallocExtension {
 static int tcmallocguard_refcount = 0;  // no lock needed: runs before main()
 TCMallocGuard::TCMallocGuard() {
   if (tcmallocguard_refcount++ == 0) {
+#ifdef _WIN64
+     // Visual studio cause runtime error if AVX is disabled
+     // https ://connect.microsoft.com/VisualStudio/feedbackdetail/view/981479/visual-studio-2013-c-runtime-illegal-instruction-if-avx-is-disabled
+      _set_FMA3_enable(0);
+#endif
+
     ReplaceSystemAlloc();    // defined in libc_override_*.h
     tc_free(tc_malloc(1));
     ThreadCache::InitTSD();
